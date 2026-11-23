@@ -1,28 +1,19 @@
 const { randomUUID } = require('node:crypto');
-const path = require('node:path');
 const express = require('express');
 const multer = require('multer');
 const controller = require('../controllers/documents');
+const storageDirectory = require('../storage');
 
 const configuredLimit = process.env.MAX_UPLOAD_SIZE_BYTES;
-const maxUploadSize = configuredLimit === undefined ? 10485760 : Number(configuredLimit);
-if (
-  (configuredLimit !== undefined && !/^\d+$/.test(configuredLimit)) ||
-  !Number.isSafeInteger(maxUploadSize) ||
-  maxUploadSize < 0 ||
-  maxUploadSize >= Number.MAX_SAFE_INTEGER
-) {
+if (configuredLimit !== undefined && !/^\d+$/.test(configuredLimit)) {
   throw new Error('MAX_UPLOAD_SIZE_BYTES deve ser um inteiro não negativo válido.');
 }
+const maxUploadSize = configuredLimit === undefined ? 10485760 : Number(configuredLimit);
 
 const storage = multer.diskStorage({
-  destination: path.resolve(__dirname, '../../storage'),
+  destination: storageDirectory,
   filename(req, file, callback) {
-    let name;
-    do {
-      name = randomUUID();
-    } while (name === file.originalname);
-    callback(null, name);
+    callback(null, randomUUID());
   },
 });
 

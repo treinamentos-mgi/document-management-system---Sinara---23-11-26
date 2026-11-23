@@ -119,6 +119,7 @@ test('contratos de upload, listagem e download', async (t) => {
       headers: { 'x-user-id': 'alice' },
     });
     assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-disposition'), 'attachment; filename="documento.txt"');
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), Buffer.from('abcde'));
 
     const errors = [];

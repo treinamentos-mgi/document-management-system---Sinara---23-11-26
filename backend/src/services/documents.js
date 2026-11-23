@@ -1,8 +1,7 @@
 const { randomUUID } = require('node:crypto');
 const path = require('node:path');
 const documents = require('../repositories/documents');
-
-const storageDirectory = path.resolve(__dirname, '../../storage');
+const storageDirectory = require('../storage');
 
 function publicMetadata({ id, originalName, size, uploadedAt, owner }) {
   return { id, originalName, size, uploadedAt, owner };
@@ -29,7 +28,10 @@ function findFile(id, owner) {
   if (!document || document.owner !== owner) {
     return null;
   }
-  return path.join(storageDirectory, document.storedName);
+  return {
+    filePath: path.join(storageDirectory, document.storedName),
+    originalName: document.originalName,
+  };
 }
 
 module.exports = { create, list, findFile };

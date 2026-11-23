@@ -8,8 +8,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use(documentRoutes);
 app.use(express.json());
+app.use(documentRoutes);
+
+app.use((error, req, res, next) => {
+  if (error.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'JSON inválido.' });
+  }
+  next(error);
+});
 
 if (require.main === module) {
   app.listen(PORT, () => {

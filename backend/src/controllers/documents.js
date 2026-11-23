@@ -21,11 +21,11 @@ function list(req, res) {
 }
 
 function download(req, res, next) {
-  const filePath = documents.findFile(req.params.id, req.owner);
-  if (!filePath) {
+  const file = documents.findFile(req.params.id, req.owner);
+  if (!file) {
     return res.status(404).json({ error: 'Documento não encontrado.' });
   }
-  res.sendFile(filePath, (error) => {
+  res.download(file.filePath, file.originalName, (error) => {
     if (error) {
       next(error);
     }
