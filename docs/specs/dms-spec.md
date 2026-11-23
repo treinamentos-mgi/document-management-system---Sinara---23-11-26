@@ -146,7 +146,7 @@ As respostas de erro definidas nesta especificação usam o formato:
 
 ## 8. Plano de execução
 
-Etapas de implementação futura; esta revisão altera somente este documento.
+Etapas de implementação do projeto.
 
 1. **Planejamento da especificação**
    - **Arquivos:** `docs/specs/dms-spec.md`.
