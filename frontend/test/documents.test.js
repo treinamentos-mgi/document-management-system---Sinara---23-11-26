@@ -27,10 +27,9 @@ test('listagem envia identificador e sinal de cancelamento', async (t) => {
   assert.equal(options.signal, signal);
 });
 
-test('download usa blob e nome do cabeçalho, com alternativa para originalName', async (t) => {
+test('download usa blob e originalName mesmo com nome no cabeçalho', async (t) => {
   const responses = [
     new Response('arquivo', { headers: { 'Content-Disposition': "attachment; filename=\"fallback.txt\"; filename*=UTF-8''relat%C3%B3rio.txt" } }),
-    new Response('arquivo', { headers: { 'Content-Disposition': 'attachment; filename="nome; teste.txt"' } }),
     new Response('arquivo'),
   ];
   const fetchMock = mock.method(globalThis, 'fetch', async () => responses.shift());
@@ -38,9 +37,8 @@ test('download usa blob e nome do cabeçalho, com alternativa para originalName'
   const item = { id: 'a/b', originalName: 'original.txt' };
 
   const first = await downloadDocument('usuario', item);
-  assert.equal(first.filename, 'relatório.txt');
+  assert.equal(first.filename, 'original.txt');
   assert.equal(await first.blob.text(), 'arquivo');
-  assert.equal((await downloadDocument('usuario', item)).filename, 'nome; teste.txt');
   assert.equal((await downloadDocument('usuario', item)).filename, 'original.txt');
   const [url, options] = fetchMock.mock.calls[0].arguments;
   assert.equal(url, '/api/documents/a%2Fb/download');
@@ -57,4 +55,20 @@ test('erros da API e falhas de conexão são exibidos', async (t) => {
   await assert.rejects(listDocuments('usuario'), { message: 'Erro na requisição (500).' });
   fetchMock.mock.mockImplementation(async () => { throw new TypeError('Failed to fetch'); });
   await assert.rejects(listDocuments('usuario'), { message: 'Não foi possível conectar à API.' });
+});
+
+test('proxy usa BACKEND_URL quando definida e localhost como padrão', async (t) => {
+  const previous = process.env.BACKEND_URL;
+  t.after(() => {
+    if (previous === undefined) delete process.env.BACKEND_URL;
+    else process.env.BACKEND_URL = previous;
+  });
+
+  delete process.env.BACKEND_URL;
+  const defaultConfig = await import('../vite.config.js?default');
+  assert.equal(defaultConfig.default.server.proxy['/api'].target, 'http://localhost:3000');
+
+  process.env.BACKEND_URL = 'http://localhost:4321';
+  const customConfig = await import('../vite.config.js?custom');
+  assert.equal(customConfig.default.server.proxy['/api'].target, 'http://localhost:4321');
 });

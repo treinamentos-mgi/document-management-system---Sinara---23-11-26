@@ -28,8 +28,13 @@ function findFile(id, owner) {
   if (!document || document.owner !== owner) {
     return null;
   }
+  const filePath = path.resolve(storageDirectory, document.storedName);
+  const relativePath = path.relative(storageDirectory, filePath);
+  if (!relativePath || relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
+    return null;
+  }
   return {
-    filePath: path.join(storageDirectory, document.storedName),
+    filePath,
     originalName: document.originalName,
   };
 }

@@ -1,5 +1,6 @@
 const express = require('express');
 const documentRoutes = require('./routes/documents');
+const errorHandler = require('./middlewares/error-handler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,6 +18,8 @@ app.use((error, req, res, next) => {
   }
   next(error);
 });
+
+app.use(errorHandler);
 
 if (require.main === module) {
   app.listen(PORT, () => {

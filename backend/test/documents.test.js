@@ -1,5 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const { randomUUID } = require('node:crypto');
 const { once } = require('node:events');
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -7,6 +8,7 @@ const path = require('node:path');
 process.env.MAX_UPLOAD_SIZE_BYTES = '5';
 const app = require('../src/app');
 const repository = require('../src/repositories/documents');
+const documents = require('../src/services/documents');
 const storage = path.resolve(__dirname, '../storage');
 
 test('contratos de upload, listagem e download', async (t) => {
@@ -132,5 +134,45 @@ test('contratos de upload, listagem e download', async (t) => {
     }
     assert.equal(typeof errors[0].error, 'string');
     assert.deepEqual(errors[0], errors[1]);
+  });
+
+  await t.test('preserva o nome UTF-8 no upload', async () => {
+    const { response, body } = await upload('alice', 'abc', 'relatório.txt');
+    assert.equal(response.status, 201);
+    assert.equal(body.originalName, 'relatório.txt');
+  });
+
+  await t.test('não resolve caminhos fora do diretório de storage', async () => {
+    for (const storedName of [
+      '../package.json',
+      path.resolve(storage, '../package.json'),
+      '../storage-outro/arquivo',
+      '..',
+      '.',
+    ]) {
+      const id = randomUUID();
+      repository.save({ id, owner: 'alice', storedName });
+      assert.equal(documents.findFile(id, 'alice'), null);
+      const response = await fetch(`${base}/documents/${id}/download`, {
+        headers: { 'x-user-id': 'alice' },
+      });
+      assert.equal(response.status, 404);
+      assert.deepEqual(await response.json(), { error: 'Documento não encontrado.' });
+      assert.equal(response.headers.get('content-disposition'), null);
+    }
+  });
+
+  await t.test('registra erro e retorna 404 quando o arquivo não existe', async (t) => {
+    const id = randomUUID();
+    repository.save({ id, owner: 'alice', storedName: randomUUID(), originalName: 'ausente.txt' });
+    const errorLog = t.mock.method(console, 'error', () => {});
+
+    const response = await fetch(`${base}/documents/${id}/download`, {
+      headers: { 'x-user-id': 'alice' },
+    });
+    assert.equal(response.status, 404);
+    assert.deepEqual(await response.json(), { error: 'Documento não encontrado.' });
+    assert.equal(errorLog.mock.callCount(), 1);
+    assert.equal(errorLog.mock.calls[0].arguments[1].code, 'ENOENT');
   });
 });
