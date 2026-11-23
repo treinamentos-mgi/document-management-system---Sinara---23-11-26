@@ -120,7 +120,9 @@ As respostas de erro definidas nesta especificação usam o formato:
 - **Frontend:** componentes funcionais com React Hooks e organização em
   `frontend/src/components`, `frontend/src/pages` e
   `frontend/src/services`. A comunicação com a API usa `fetch` pelo prefixo
-  `/api`.
+  `/api`. O usuário informa seu identificador na página; sem ele, o envio e a
+  listagem ficam desabilitados. O download usa o nome de `Content-Disposition`
+  quando disponível, ou `originalName` como alternativa.
 - **Proxy e caminhos:** `frontend/vite.config.js` encaminha `/api` ao backend
   local e remove esse prefixo. Portanto, as rotas do backend são `/upload`,
   `/documents` e `/documents/:id/download`, sem `/api`.
@@ -192,13 +194,11 @@ Etapas de implementação do projeto.
 
 ## 9. Questões em aberto
 
-- Como o frontend obtém o valor de `x-user-id`?
 - Quais tipos de arquivo e demais regras de validação são aceitos?
 - Quais códigos de erro se aplicam a falhas diferentes das já definidas
   (arquivo ausente, cabeçalho ausente/vazio, limite excedido e identificador
   inexistente/documento de outro usuário)?
 - A listagem terá ordenação, paginação ou filtragem?
-- Quais cabeçalhos e nome de arquivo devem ser usados no download?
 - Qual é o comportamento e o status de erro quando os metadados existem, mas o
   arquivo local não está disponível?
 - Se `PORT` for diferente de `3000`, como o destino do proxy de desenvolvimento
