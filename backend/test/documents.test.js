@@ -142,6 +142,31 @@ test('contratos de upload, listagem e download', async (t) => {
     assert.equal(body.originalName, 'relatório.txt');
   });
 
+  await t.test('mantém arquivos homônimos distintos e preserva seus bytes', async () => {
+    const contents = [Buffer.from([0x00, 0x80, 0xff]), Buffer.from([0xff, 0x00, 0x81])];
+    const results = [];
+    for (const bytes of contents) {
+      const { response, body } = await upload('dave', bytes, 'binário.dat');
+      assert.equal(response.status, 201);
+      results.push(body);
+    }
+
+    assert.notEqual(results[0].id, results[1].id);
+    assert.notEqual(repository.findById(results[0].id).storedName, repository.findById(results[1].id).storedName);
+    const listing = await fetch(`${base}/documents`, { headers: { 'x-user-id': 'dave' } });
+    assert.equal(listing.status, 200);
+    const listedDocuments = await listing.json();
+    assert.equal(listedDocuments.length, 2);
+    for (const [index, document] of results.entries()) {
+      assert.ok(listedDocuments.some((listed) => listed.id === document.id));
+      const response = await fetch(`${base}/documents/${document.id}/download`, {
+        headers: { 'x-user-id': 'dave' },
+      });
+      assert.equal(response.status, 200);
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), contents[index]);
+    }
+  });
+
   await t.test('não resolve caminhos fora do diretório de storage', async () => {
     for (const storedName of [
       '../package.json',
