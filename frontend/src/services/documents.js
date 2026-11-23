@@ -12,33 +12,17 @@ async function request(path, userId, options = {}) {
 
   if (!response.ok) {
     const body = await response.text();
-    let message;
+    let data;
     try {
-      const data = JSON.parse(body);
-      if (data && typeof data.error === 'string') message = data.error;
-    } catch (error) {
-      if (!(error instanceof SyntaxError)) throw error;
+      data = JSON.parse(body);
+    } catch {
+      throw new Error(`Erro na requisição (${response.status}).`);
     }
+    const message = data && typeof data.error === 'string' ? data.error : '';
     throw new Error(message || `Erro na requisição (${response.status}).`);
   }
 
   return response;
-}
-
-function getDownloadName(disposition, originalName) {
-  if (!disposition) return originalName;
-
-  const extended = disposition.match(/(?:^|;)\s*filename\*\s*=\s*UTF-8'[^']*'([^;]*)/i);
-  if (extended) {
-    try {
-      return decodeURIComponent(extended[1]) || originalName;
-    } catch (error) {
-      if (!(error instanceof URIError)) throw error;
-    }
-  }
-
-  const standard = disposition.match(/(?:^|;)\s*filename\s*=\s*(?:"((?:\\.|[^"\\])*)"|([^;]*))/i);
-  return (standard?.[1]?.replace(/\\(.)/g, '$1') || standard?.[2]?.trim()) || originalName;
 }
 
 export async function uploadDocument(userId, file) {
@@ -57,6 +41,6 @@ export async function downloadDocument(userId, document) {
   const response = await request(`/documents/${encodeURIComponent(document.id)}/download`, userId);
   return {
     blob: await response.blob(),
-    filename: getDownloadName(response.headers.get('Content-Disposition'), document.originalName),
+    filename: document.originalName,
   };
 }

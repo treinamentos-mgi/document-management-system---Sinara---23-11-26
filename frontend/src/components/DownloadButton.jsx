@@ -8,20 +8,18 @@ export default function DownloadButton({ userId, document: item }) {
   async function handleDownload() {
     setDownloading(true);
     setError('');
+    let url;
     try {
       const { blob, filename } = await downloadDocument(userId, item);
-      const url = URL.createObjectURL(blob);
-      try {
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.click();
-      } finally {
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }
+      url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
     } catch (error) {
       setError(error.message);
     } finally {
+      if (url) setTimeout(() => URL.revokeObjectURL(url), 1000);
       setDownloading(false);
     }
   }

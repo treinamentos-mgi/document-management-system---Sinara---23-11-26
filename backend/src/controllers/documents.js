@@ -27,6 +27,11 @@ function download(req, res, next) {
   }
   res.download(file.filePath, file.originalName, (error) => {
     if (error) {
+      if (error.code === 'ENOENT' && !res.headersSent) {
+        console.error('Erro ao acessar documento:', error);
+        res.removeHeader('Content-Disposition');
+        return res.status(404).json({ error: 'Documento não encontrado.' });
+      }
       next(error);
     }
   });

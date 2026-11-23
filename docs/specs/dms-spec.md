@@ -102,9 +102,12 @@ As respostas de erro definidas nesta especificação usam o formato:
   documento pertencer ao usuário identificado pelo cabeçalho.
 - **Erros definidos:** `400 Bad Request` quando `x-user-id` está ausente ou
   vazio; `404 Not Found` quando o identificador não existe ou quando o
-  documento pertence a outro usuário. Retornar o mesmo status para esses dois
-  últimos casos evita revelar a existência de documentos de terceiros. As
-  respostas usam o formato de erro acima.
+  documento pertence a outro usuário. Também retorna `404 Not Found`, com
+  `{ "error": "Documento não encontrado." }`, quando os metadados existem,
+  mas o arquivo não existe no disco; nesse caso, o erro é registrado no console.
+  Retornar o mesmo status para identificador inexistente e documento de outro
+  usuário evita revelar a existência de documentos de terceiros. As respostas
+  usam o formato de erro acima.
 - **Resolução do arquivo:** localizar os metadados pelo identificador e obter
   deles o nome físico gerado pelo sistema; não montar um caminho a partir de
   `:id` ou de `originalName`.
@@ -121,14 +124,13 @@ As respostas de erro definidas nesta especificação usam o formato:
   `frontend/src/components`, `frontend/src/pages` e
   `frontend/src/services`. A comunicação com a API usa `fetch` pelo prefixo
   `/api`. O usuário informa seu identificador na página; sem ele, o envio e a
-  listagem ficam desabilitados. O download usa o nome de `Content-Disposition`
-  quando disponível, ou `originalName` como alternativa.
+  listagem ficam desabilitados. O download usa `originalName` como nome do arquivo.
 - **Proxy e caminhos:** `frontend/vite.config.js` encaminha `/api` ao backend
   local e remove esse prefixo. Portanto, as rotas do backend são `/upload`,
   `/documents` e `/documents/:id/download`, sem `/api`.
 - **Porta:** o backend lê `PORT` do ambiente e usa `3000` quando a variável não
-  está definida. O proxy de desenvolvimento do Vite aponta para
-  `http://localhost:3000`.
+  está definida. O proxy de desenvolvimento do Vite usa `BACKEND_URL` como
+  destino, com `http://localhost:3000` como padrão.
 - **Identidade e acesso:** o valor de `x-user-id` identifica o dono; não há
   autenticação. Listagem e download filtram pelo dono. Como o cabeçalho não é
   autenticado, ele não comprova a identidade e não deve ser tratado como uma
@@ -139,12 +141,14 @@ As respostas de erro definidas nesta especificação usam o formato:
   `413`.
 - **Armazenamento:** arquivos locais em `backend/storage`, por Multer com
   `diskStorage`; metadados em memória. O nome físico é gerado pelo sistema e o
-  download resolve o arquivo somente por metadados armazenados.
+  download resolve o arquivo somente por metadados armazenados, mantendo o
+  caminho dentro do diretório de storage. Se o arquivo não existir no disco,
+  retorna `404` com `{ "error": "Documento não encontrado." }` e registra o erro.
 - **Respostas:** upload bem-sucedido retorna `201`; listagem e download
   bem-sucedidos retornam `200`; arquivo ou `x-user-id` ausente/vazio retorna
   `400`; upload acima do limite retorna `413`; identificador inexistente ou
-  documento de outro usuário retorna `404`. As respostas de erro usam
-  `{ "error": "mensagem" }`.
+  documento de outro usuário retorna `404`; arquivo ausente no disco também
+  retorna `404`. As respostas de erro usam `{ "error": "mensagem" }`.
 
 ## 8. Plano de execução
 
@@ -196,10 +200,12 @@ Etapas de implementação do projeto.
 
 - Quais tipos de arquivo e demais regras de validação são aceitos?
 - Quais códigos de erro se aplicam a falhas diferentes das já definidas
-  (arquivo ausente, cabeçalho ausente/vazio, limite excedido e identificador
-  inexistente/documento de outro usuário)?
+  (arquivo não enviado ou ausente no disco, cabeçalho ausente/vazio, limite
+  excedido e identificador inexistente/documento de outro usuário)?
 - A listagem terá ordenação, paginação ou filtragem?
-- Qual é o comportamento e o status de erro quando os metadados existem, mas o
-  arquivo local não está disponível?
-- Se `PORT` for diferente de `3000`, como o destino do proxy de desenvolvimento
-  do Vite será alinhado à porta do backend?
+
+## 10. Riscos conhecidos
+
+- O cabeçalho `x-user-id` não é autenticado e permite impersonar outros usuários.
+- O storage não possui limite agregado e pode crescer indefinidamente.
+- Os metadados em memória são perdidos ao reiniciar a aplicação.
