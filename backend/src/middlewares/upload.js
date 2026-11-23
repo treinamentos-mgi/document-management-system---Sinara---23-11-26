@@ -15,9 +15,8 @@ const storage = multer.diskStorage({
   },
 });
 
-// O Busboy sinaliza o limite ao alcançá-lo, inclusive quando o tamanho é exato.
 module.exports = multer({
   storage,
   defParamCharset: 'utf8',
-  limits: { fileSize: maxUploadSize + 1 },
+  limits: { fileSize: maxUploadSize },
 }).single('file');
